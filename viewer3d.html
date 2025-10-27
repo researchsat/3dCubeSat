@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3U CubeSat — Molten Metal Diagnostics (3D CAD Block Diagram)</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:linear-gradient(#08101a,#061019);color:#e6eef8}
+    #canvas-container{width:100%;height:100%;position:relative;overflow:hidden}
+    canvas{display:block}
+    #ui-top{position:absolute;left:16px;top:16px;z-index:50;background:rgba(0,0,0,0.45);padding:10px;border-radius:8px}
+    #ui-top .title{font-weight:700;margin-bottom:6px}
+    #legend{position:absolute;right:16px;top:16px;z-index:50;background:rgba(0,0,0,0.45);padding:10px;border-radius:8px;min-width:220px}
+    #footer{position:absolute;left:16px;bottom:16px;z-index:50;background:rgba(0,0,0,0.45);padding:8px;border-radius:8px}
+    .label-ui{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;z-index:45;will-change:left,top;transition:transform .08s linear}
+    .label-ui .inner{background:rgba(0,0,0,0.66);padding:6px 10px;border-radius:6px;color:#fff;font-size:12px;white-space:nowrap;border:1px solid rgba(255,255,255,0.04)}
+    .label-ui .inner.highlight{box-shadow:0 6px 20px rgba(123,211,137,0.14);border-color:rgba(123,211,137,0.25)}
+    .legend-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+    .legend-box{width:18px;height:12px;border-radius:2px}
+    #controls{margin-top:8px;font-size:12px;opacity:0.95}
+    .ruler-label{font-size:11px;color:#cfe6d9;opacity:0.85}
+    a{color:#7bd389}
+  </style>
+
+  <!-- three.js and OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="ui-top">
+    <div class="title">3U CubeSat — Molten Metal Diagnostics (1 unit = 1 cm)</div>
+    <div style="font-size:13px;opacity:0.95">Rotate: drag • Zoom: scroll • Click a block to highlight</div>
+    <div id="controls">
+      <label style="font-size:12px;display:block;margin-top:8px"><input id="toggle-cut" type="checkbox"> Cutaway (hide right face)</label>
+      <label style="font-size:12px;display:block"><input id="toggle-ruler" type="checkbox" checked> Show Z-axis ruler (cm)</label>
+    </div>
+  </div>
+
+  <div id="legend">
+    <div style="font-weight:700;margin-bottom:6px">Legend & Sections</div>
+    <div class="legend-row"><div class="legend-box" style="background:#e06161"></div><div>Furnace / Crucible (U1)</div></div>
+    <div class="legend-row"><div class="legend-box" style="background:#ffc66b"></div><div>Thermocouple Feedthroughs</div></div>
+    <div class="legend-row"><div class="legend-box" style="background:#61b3e0"></div><div>Optics & Sensors (U2)</div></div>
+    <div class="legend-row"><div class="legend-box" style="background:#9be26b"></div><div>Electronics & DAQ (U3)</div></div>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0">
+    <div style="font-size:12px;opacity:0.93"><strong>Sections (Z axis)</strong><br>U1 • Top (Experiment) — U2 • Middle (Sensors) — U3 • Bottom (Electronics)</div>
+  </div>
+
+  <div id="footer">Dimensions: 10 × 10 × 34 cm (width × height × length). Internal separators: 0.2 cm thick.</div>
+
+<script>
+/* ---------------------------
+  Scene setup (units = cm)
+   - 1 unit = 1 cm
+   - CubeSat outer: 10 × 10 × 34
+----------------------------*/
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x061019);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(60, 30, 120);
+camera.lookAt(0,0,0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+container.appendChild(renderer.domElement);
+
+// Controls
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 30;
+controls.maxDistance = 300;
+
+// Lighting
+const hemi = new THREE.HemisphereLight(0xffffff, 0x222244, 0.9);
+scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+dir.position.set(60, 80, 40);
+dir.castShadow = false;
+scene.add(dir);
+const ambient = new THREE.AmbientLight(0x404050, 0.25);
+scene.add(ambient);
+
+// Axis helper + grid
+const axes = new THREE.AxesHelper(20); // colors: X red, Y green, Z blue
+scene.add(axes);
+
+const grid = new THREE.GridHelper(160, 40, 0x223344, 0x151a22);
+grid.rotation.x = Math.PI / 2;
+grid.position.y = -30;
+scene.add(grid);
+
+/* ---------------------------
+  Create CubeSat outer frame & separators
+----------------------------*/
+const outerW = 10, outerH = 10, outerL = 34; // cm
+const outerGeom = new THREE.BoxGeometry(outerW, outerH, outerL);
+const outerMat = new THREE.MeshStandardMaterial({color:0x0b2b3b, opacity:0.28, transparent:true, metalness:0.25, roughness:0.45});
+const outerMesh = new THREE.Mesh(outerGeom, outerMat);
+scene.add(outerMesh);
+
+// Optionally show wireframe edges
+const edgeGeom = new THREE.EdgesGeometry(outerGeom);
+const edgeMat = new THREE.LineBasicMaterial({color:0x223344});
+const edges = new THREE.LineSegments(edgeGeom, edgeMat);
+scene.add(edges);
+
+// Internal separators thickness 0.2 cm
+const sepThickness = 0.2;
+const sepMat = new THREE.MeshStandardMaterial({color:0x223344, metalness:0.1, roughness:0.6});
+const third = outerL / 3; // 11.333333...
+const u1Center = + (outerL/2 - third/2); // +11.3333
+const u2Center = 0;
+const u3Center = -u1Center;
+
+const sep1 = new THREE.Mesh(new THREE.BoxGeometry(outerW*0.96, outerH*0.96, sepThickness), sepMat);
+sep1.position.z = u1Center;
+scene.add(sep1);
+const sep2 = sep1.clone();
+sep2.position.z = u3Center;
+scene.add(sep2);
+
+/* ---------------------------
+  Helpers: DOM label creation (project 3D->2D each frame)
+----------------------------*/
+function createDOMLabel(text) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'label-ui';
+  wrapper.style.left = '50%';
+  wrapper.style.top = '50%';
+  wrapper.style.display = 'none';
+  const inner = document.createElement('div');
+  inner.className = 'inner';
+  inner.innerHTML = text;
+  wrapper.appendChild(inner);
+  container.appendChild(wrapper);
+  return wrapper;
+}
+
+function showLabel(dom){ dom.style.display = 'block'; dom.style.opacity = '1'; }
+function hideLabel(dom){ dom.style.display = 'none'; }
+
+/* ---------------------------
+  Create internal blocks (exact cm dimensions)
+  We'll place them using 1 unit = 1 cm and center positions.
+----------------------------*/
+const blocks = []; // store objects
+
+function addBlock(width, height, depth, colorHex, labelText, pos) {
+  const geom = new THREE.BoxGeometry(width, height, depth);
+  const mat = new THREE.MeshStandardMaterial({color: colorHex, metalness:0.2, roughness:0.35});
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(pos.x, pos.y, pos.z);
+  mesh.userData = { label: labelText, color: colorHex, dims: {w:width,h:height,d:depth} };
+  scene.add(mesh);
+  // create DOM label and attach
+  mesh.userData.dom = createDOMLabel(`<strong>${labelText}</strong><br><span style="font-size:11px;opacity:0.85">${width}×${height}×${depth} cm</span>`);
+  blocks.push(mesh);
+  return mesh;
+}
+
+/* U1 (Top) components */
+addBlock(9.0, 6.0, 10.5, 0xe06161, 'Furnace / Crucible (U1)', {x:0,y:0,z:u1Center});
+addBlock(2.2, 0.6, 2.2, 0xffc66b, 'Thermocouple Feedthroughs (U1)', {x:0,y:3,z:u1Center + 2.6});
+
+/* U2 (Middle) components */
+addBlock(4.0, 3.5, 3.0, 0x61b3e0, 'Mini CMOS Camera (U2)', {x:-2.4,y:0,z:u2Center + 4.0});
+addBlock(5.2, 2.8, 2.6, 0x61b3e0, 'Fiber Spectrometer (U2)', {x:2.6,y:0,z:u2Center + 1.2});
+addBlock(2.6, 1.8, 1.6, 0x61b3e0, 'Acoustic Sensor (U2)', {x:-3.0,y:0,z:u2Center - 3.8});
+
+/* U3 (Bottom) components */
+addBlock(8.6, 3.6, 8.6, 0x9be26b, 'DAQ / MCU & Storage (U3)', {x:0,y:0,z:u3Center + 1.0});
+addBlock(4.0, 2.4, 4.0, 0x7fb86f, 'Power Conditioning / Heaters (U3)', {x:2.6,y:0,z:u3Center - 3.8});
+addBlock(2.2, 1.6, 2.2, 0x7fb86f, 'Pressure & Gas MEMS (U3)', {x:-3.0,y:0,z:u3Center - 1.6});
+
+/* Wiring harness lines (thin cylinders) */
+function addHarness(fromVec, toVec, color=0xffffcc) {
+  const dir = new THREE.Vector3().subVectors(toVec, fromVec);
+  const len = dir.length();
+  const cylGeom = new THREE.CylinderGeometry(0.2, 0.2, len, 8);
+  const mat = new THREE.MeshStandardMaterial({color: color, metalness:0.1, roughness:0.6});
+  const cyl = new THREE.Mesh(cylGeom, mat);
+  // position: midpoint
+  const mid = new THREE.Vector3().addVectors(fromVec, toVec).multiplyScalar(0.5);
+  cyl.position.copy(mid);
+  // orient cylinder
+  cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  scene.add(cyl);
+}
+addHarness(new THREE.Vector3(0,0,u1Center+5), new THREE.Vector3(-2.4,0,u2Center+4));
+addHarness(new THREE.Vector3(-2.4,0,u2Center+2), new THREE.Vector3(0,0,u3Center+1));
+
+/* ---------------------------
+  Z-axis ruler (ruler ticks in cm)
+----------------------------*/
+const rulerGroup = new THREE.Group();
+rulerGroup.visible = true;
+scene.add(rulerGroup);
+
+function makeRuler() {
+  // Clear
+  while(rulerGroup.children.length) rulerGroup.remove(rulerGroup.children[0]);
+  const x = -outerW*0.5 - 2.5; // left side of CubeSat
+  for(let z = Math.ceil(-outerL/2); z <= Math.floor(outerL/2); z += 1) {
+    // place a small tick
+    const isMajor = (z % 5 === 0);
+    const len = isMajor ? 1.0 : 0.5;
+    const geom = new THREE.BoxGeometry(0.2, len, 0.05);
+    const mat = new THREE.MeshBasicMaterial({color: isMajor ? 0x7bd389 : 0x6fbfbd});
+    const tick = new THREE.Mesh(geom, mat);
+    tick.position.set(x, -outerH/2 - 2.0, z);
+    rulerGroup.add(tick);
+    // add label every 5 cm
+    if(isMajor) {
+      const labelDom = createDOMLabel(`<span class="ruler-label">${z} cm</span>`);
+      // attach to dummy object for projection
+      const anchor = new THREE.Object3D();
+      anchor.position.set(x - 0.2, -outerH/2 - 2.6, z);
+      anchor.userData.dom = labelDom;
+      anchor.userData.labelOffset = new THREE.Vector3(0,0,0);
+      scene.add(anchor);
+    }
+  }
+}
+makeRuler();
+
+/* ---------------------------
+  Interaction: hover & click highlight
+----------------------------*/
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hovered = null;
+let selected = null;
+
+function onPointerMove(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(blocks, true);
+  if(intersects.length) {
+    const obj = intersects[0].object;
+    if(hovered !== obj) {
+      if(hovered && hovered.material) hovered.material.emissive.setHex(0x000000);
+      hovered = obj;
+      hovered.material.emissive.setHex(0x222222);
+      hovered.material.opacity = 1.0;
+    }
+  } else {
+    if(hovered && hovered.material) hovered.material.emissive.setHex(0x000000);
+    hovered = null;
+  }
+}
+function onClick(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(blocks, true);
+  if(intersects.length) {
+    const obj = intersects[0].object;
+    if(selected && selected !== obj) {
+      // reset previous
+      selected.material.emissive.setHex(0x000000);
+      const inner = selected.userData.dom.querySelector('.inner');
+      if(inner) inner.classList.remove('highlight');
+    }
+    selected = obj;
+    selected.material.emissive.setHex(0x447744);
+    const inner = selected.userData.dom.querySelector('.inner');
+    if(inner) inner.classList.add('highlight');
+    // flash label
+    flashDOM(selected.userData.dom);
+  }
+}
+function flashDOM(dom) {
+  // show and pulse
+  dom.style.display = 'block';
+  dom.style.opacity = '1';
+  dom.style.transform = 'translate(-50%,-120%) scale(1.02)';
+  setTimeout(()=>{ dom.style.transform = 'translate(-50%,-100%) scale(1)'; }, 200);
+  setTimeout(()=>{ /* keep visible */ }, 1400);
+}
+
+renderer.domElement.addEventListener('pointermove', onPointerMove);
+renderer.domElement.addEventListener('click', onClick);
+
+/* ---------------------------
+  Project 3D -> 2D label positioning
+----------------------------*/
+const proj = new THREE.Vector3();
+function updateLabelFor(obj) {
+  if(!obj.userData || !obj.userData.dom) return;
+  // compute label world position: use labelOffset if present
+  const worldPos = new THREE.Vector3();
+  if(obj.userData.labelOffset) {
+    // apply object's world transform to local offset
+    worldPos.copy(obj.userData.labelOffset).applyMatrix4(obj.matrixWorld);
+  } else {
+    obj.getWorldPosition(worldPos);
+  }
+  proj.copy(worldPos).project(camera);
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = (proj.x * 0.5 + 0.5) * rect.width + rect.left;
+  const y = (-proj.y * 0.5 + 0.5) * rect.height + rect.top;
+  const dom = obj.userData.dom;
+  dom.style.left = `${Math.round(x)}px`;
+  dom.style.top = `${Math.round(y)}px`;
+  dom.style.display = 'block';
+}
+
+/* ---------------------------
+  Update loop
+----------------------------*/
+function updateAllLabels() {
+  // traverse scene to find nodes with dom labels
+  scene.traverse(node=>{
+    if(node.userData && node.userData.dom) {
+      updateLabelFor(node);
+    }
+  });
+}
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+  updateAllLabels();
+}
+animate();
+
+/* ---------------------------
+  UI toggles
+----------------------------*/
+document.getElementById('toggle-cut').addEventListener('change', (e)=>{
+  if(e.target.checked) {
+    // hide right face by removing that edge or making outer mesh half-transparent? We'll hide the outer mesh right face by adding clip plane
+    // Simpler: move outerMesh slightly left and scale X to 0.5 to mimic cutaway. (non-destructive)
+    outerMesh.visible = true;
+    outerMesh.scale.x = 1.0; // keep full
+    // produce cutaway by hiding the right half of separator edges: we will simply hide the outerMesh and edges on right by applying a boolean: simpler => set outerMesh material to partial and offset camera
+    outerMesh.material.opacity = 0.18;
+    edges.material.color.setHex(0x334455);
+  } else {
+    outerMesh.material.opacity = 0.28;
+    edges.material.color.setHex(0x223344);
+  }
+});
+document.getElementById('toggle-ruler').addEventListener('change', (e)=>{
+  rulerGroup.visible = e.target.checked;
+});
+
+/* ---------------------------
+  Resize handling
+----------------------------*/
+window.addEventListener('resize', ()=> {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ---------------------------
+  End
+----------------------------*/
+</script>
+</body>
+</html>

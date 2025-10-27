@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive 3D CubeSat Visualization and Design Tool">
+    <meta name="keywords" content="CubeSat, 3D, Three.js, Visualization, Aerospace">
+    <meta name="author" content="RaviTeja">
+    <title>3D CubeSat Viewer - Production Edition</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <!-- Info Panel -->
+    <div id="info-panel" class="panel">
+        <h1>3U CubeSat Visualization</h1>
+        <p><strong>Dimensions:</strong> 10 × 10 × 34 cm</p>
+        <h2>Selected Component</h2>
+        <p id="selected-info">Click on a component to view details</p>
+        <div class="panel-footer">
+          <small>Press <kbd>E</kbd> to open editor</small>
+        </div>
+    </div>
+    
+    <!-- Control Panel -->
+    <div id="controls" class="panel">
+        <h3>Controls</h3>
+        <div class="control-group">
+            <button id="toggle-u1" class="btn">Toggle U1</button>
+            <button id="toggle-u2" class="btn">Toggle U2</button>
+            <button id="toggle-u3" class="btn">Toggle U3</button>
+        </div>
+        <div class="control-group">
+            <button id="toggle-rotation" class="btn">Auto Rotate</button>
+            <button id="reset-camera" class="btn">Reset Camera</button>
+        </div>
+        <div class="control-group">
+            <button id="toggle-editor" class="btn btn-primary">Open Editor</button>
+        </div>
+    </div>
+    
+    <!-- Legend -->
+    <div id="legend" class="panel">
+        <h3>Component Legend</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e06161;"></div>
+            <span>Experiment Payload</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffc66b;"></div>
+            <span>Sensors (Thermal)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #61b3e0;"></div>
+            <span>Optics & Sensors</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9be26b;"></div>
+            <span>Electronics (DAQ)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #7fb86f;"></div>
+            <span>Power & MEMS</span>
+        </div>
+    </div>
+    
+    <!-- Toolbar -->
+    <div id="toolbar" class="panel">
+        <button id="export-config" class="btn-icon" title="Export Configuration">
+            <span>💾</span>
+        </button>
+        <button id="import-config" class="btn-icon" title="Import Configuration">
+            <span>📂</span>
+        </button>
+        <button id="take-screenshot" class="btn-icon" title="Take Screenshot">
+            <span>📷</span>
+        </button>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading 3D CubeSat Viewer...</p>
+    </div>
+    
+    <!-- Main Application Script -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+

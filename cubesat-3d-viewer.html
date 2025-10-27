@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3U CubeSat CAD Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(180deg, #0b1020 0%, #08101a 100%);
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 25, 40, 0.9);
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            max-width: 300px;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        #info-panel h1 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #61b3e0;
+        }
+        
+        #info-panel h2 {
+            font-size: 14px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            color: #9be26b;
+        }
+        
+        #info-panel p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+        
+        .section-label {
+            position: absolute;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 8px 12px;
+            background: rgba(20, 30, 50, 0.8);
+            border-radius: 4px;
+            border-left: 3px solid;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .label-u1 { border-color: #e06161; }
+        .label-u2 { border-color: #61b3e0; }
+        .label-u3 { border-color: #9be26b; }
+        
+        .component-label {
+            position: absolute;
+            color: #fff;
+            font-size: 12px;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 3px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .component-label.active {
+            opacity: 1;
+            animation: labelGlow 1s ease-in-out infinite;
+        }
+        
+        @keyframes labelGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+            50% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.8); }
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 25, 40, 0.9);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 150, 200, 0.3);
+        }
+        
+        #controls button {
+            margin: 5px;
+            padding: 8px 15px;
+            background: rgba(97, 179, 224, 0.3);
+            color: #fff;
+            border: 1px solid #61b3e0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #controls button:hover {
+            background: rgba(97, 179, 224, 0.6);
+        }
+        
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 25, 40, 0.9);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="info-panel">
+        <h1>3U CubeSat Visualization</h1>
+        <p><strong>Dimensions:</strong> 10 × 10 × 34 cm</p>
+        <h2>Selected Component</h2>
+        <p id="selected-info">Click on a component to view details</p>
+    </div>
+    
+    <div id="controls">
+        <button id="toggle-u1">Toggle U1</button>
+        <button id="toggle-u2">Toggle U2</button>
+        <button id="toggle-u3">Toggle U3</button>
+        <button id="toggle-rotation">Auto Rotate</button>
+    </div>
+    
+    <div id="legend">
+        <h3 style="margin-bottom: 10px;">Component Legend</h3>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e06161;"></div>
+            <span>Experiment Payload</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffc66b;"></div>
+            <span>Sensors (Thermal)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #61b3e0;"></div>
+            <span>Optics & Sensors</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9be26b;"></div>
+            <span>Electronics (DAQ)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #7fb86f;"></div>
+            <span>Power & MEMS</span>
+        </div>
+    </div>
+    
+    <div id="loading">Loading Three.js Scene...</div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b1020);
+        
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(40, 25, 60);
+        camera.lookAt(0, 0, 0);
+        
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 20;
+        controls.maxDistance = 150;
+        
+        // Lighting
+        const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        scene.add(hemisphereLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(30, 40, 30);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+        
+        const pointLight = new THREE.PointLight(0xffa500, 0.3, 50);
+        pointLight.position.set(0, 0, 11.33);
+        scene.add(pointLight);
+        
+        // Grid and axes
+        const gridHelper = new THREE.GridHelper(80, 80, 0x444444, 0x222222);
+        gridHelper.position.y = -20;
+        scene.add(gridHelper);
+        
+        const axesHelper = new THREE.AxesHelper(15);
+        axesHelper.position.set(-25, -20, -25);
+        scene.add(axesHelper);
+        
+        // Component data
+        const components = [
+            // U1 - Experiment
+            { name: 'Furnace / Crucible', size: [9, 6, 10.5], pos: [0, 0, 11.33], color: 0xe06161, section: 'U1' },
+            { name: 'Thermocouple Array', size: [2.2, 0.6, 2.2], pos: [0, 3, 13.9], color: 0xffc66b, section: 'U1' },
+            // U2 - Sensors & Optics
+            { name: 'Mini CMOS Camera', size: [4, 3.5, 3], pos: [-2.4, 0, 4.0], color: 0x61b3e0, section: 'U2' },
+            { name: 'Fiber Spectrometer', size: [5.2, 2.8, 2.6], pos: [2.6, 0, 1.2], color: 0x61b3e0, section: 'U2' },
+            { name: 'Acoustic Sensor', size: [2.6, 1.8, 1.6], pos: [-3.0, 0, -3.8], color: 0x61b3e0, section: 'U2' },
+            // U3 - Electronics
+            { name: 'DAQ / MCU & Storage', size: [8.6, 3.6, 8.6], pos: [0, 0, -10.3], color: 0x9be26b, section: 'U3' },
+            { name: 'Power Conditioning / Heaters', size: [4, 2.4, 4], pos: [2.6, 0, -14.0], color: 0x7fb86f, section: 'U3' },
+            { name: 'Pressure & Gas MEMS', size: [2.2, 1.6, 2.2], pos: [-3.0, 0, -12.6], color: 0x7fb86f, section: 'U3' }
+        ];
+
+        // Create CubeSat structure
+        const cubesatGroup = new THREE.Group();
+        scene.add(cubesatGroup);
+
+        // Semi-transparent chassis
+        const chassisGeometry = new THREE.BoxGeometry(10, 10, 34);
+        const chassisMaterial = new THREE.MeshStandardMaterial({
+            color: 0x555555,
+            metalness: 0.7,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        const chassis = new THREE.Mesh(chassisGeometry, chassisMaterial);
+        cubesatGroup.add(chassis);
+
+        // Wireframe overlay
+        const wireframeGeometry = new THREE.EdgesGeometry(chassisGeometry);
+        const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0x888888, linewidth: 1 });
+        const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+        cubesatGroup.add(wireframe);
+
+        // Separator plates
+        const separatorMaterial = new THREE.MeshStandardMaterial({
+            color: 0x223344,
+            metalness: 0.5,
+            roughness: 0.5,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        const separatorGeometry = new THREE.BoxGeometry(10, 10, 0.2);
+
+        const separator1 = new THREE.Mesh(separatorGeometry, separatorMaterial);
+        separator1.position.z = 5.665; // Between U1 and U2
+        cubesatGroup.add(separator1);
+
+        const separator2 = new THREE.Mesh(separatorGeometry, separatorMaterial);
+        separator2.position.z = -5.665; // Between U2 and U3
+        cubesatGroup.add(separator2);
+
+        // Section groups for visibility toggling
+        const sections = {
+            U1: new THREE.Group(),
+            U2: new THREE.Group(),
+            U3: new THREE.Group()
+        };
+
+        Object.values(sections).forEach(group => cubesatGroup.add(group));
+
+        // Interactive components
+        const interactiveObjects = [];
+        const componentMeshes = new Map();
+
+        // Create internal components
+        components.forEach(comp => {
+            const geometry = new THREE.BoxGeometry(...comp.size);
+            const material = new THREE.MeshStandardMaterial({
+                color: comp.color,
+                metalness: 0.4,
+                roughness: 0.6,
+                emissive: comp.color,
+                emissiveIntensity: 0
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(...comp.pos);
+            mesh.userData = {
+                name: comp.name,
+                section: comp.section,
+                originalEmissive: comp.color,
+                size: comp.size,
+                color: comp.color
+            };
+
+            sections[comp.section].add(mesh);
+            interactiveObjects.push(mesh);
+            componentMeshes.set(comp.name, mesh);
+
+            // Add edges for better visibility
+            const edges = new THREE.EdgesGeometry(geometry);
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true });
+            const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+            mesh.add(edgeLines);
+        });
+
+        // Create wiring harnesses
+        const harnessPositions = [
+            [[0, 0, 11.33], [0, 0, 0]],    // U1 to U2
+            [[0, 0, 0], [0, 0, -11.33]]     // U2 to U3
+        ];
+
+        harnessPositions.forEach(([start, end]) => {
+            const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2 });
+            const line = new THREE.Line(geometry, material);
+            cubesatGroup.add(line);
+
+            // Add cylindrical harness
+            const direction = new THREE.Vector3().subVectors(
+                new THREE.Vector3(...end),
+                new THREE.Vector3(...start)
+            );
+            const length = direction.length();
+            const cylinderGeometry = new THREE.CylinderGeometry(0.2, 0.2, length, 8);
+            const cylinderMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+            const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+
+            cylinder.position.set(
+                (start[0] + end[0]) / 2,
+                (start[1] + end[1]) / 2,
+                (start[2] + end[2]) / 2
+            );
+            cylinder.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                direction.normalize()
+            );
+            cubesatGroup.add(cylinder);
+        });
+
+        // Scale markings along Z-axis
+        for (let z = -17; z <= 17; z += 1) {
+            const tickGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.1);
+            const tickMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const tick = new THREE.Mesh(tickGeometry, tickMaterial);
+            tick.position.set(5.5, 0, z);
+            cubesatGroup.add(tick);
+        }
+
+        // Raycaster for interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let hoveredObject = null;
+
+        // Mouse interaction
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects, false);
+
+            // Reset previous hover
+            if (hoveredObject && hoveredObject !== selectedObject) {
+                hoveredObject.material.emissiveIntensity = 0;
+            }
+
+            if (intersects.length > 0) {
+                hoveredObject = intersects[0].object;
+                if (hoveredObject !== selectedObject) {
+                    hoveredObject.material.emissiveIntensity = 0.3;
+                }
+                document.body.style.cursor = 'pointer';
+            } else {
+                hoveredObject = null;
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function onClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(interactiveObjects, false);
+
+            // Reset previous selection
+            if (selectedObject) {
+                selectedObject.material.emissiveIntensity = 0;
+            }
+
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+                selectedObject.material.emissiveIntensity = 0.5;
+
+                // Update info panel
+                const userData = selectedObject.userData;
+                document.getElementById('selected-info').innerHTML = `
+                    <strong>${userData.name}</strong><br>
+                    Section: ${userData.section}<br>
+                    Size: ${userData.size.join(' × ')} cm<br>
+                    Color: #${userData.color.toString(16).padStart(6, '0')}
+                `;
+
+                // Flash effect
+                let flashCount = 0;
+                const flashInterval = setInterval(() => {
+                    selectedObject.material.emissiveIntensity =
+                        selectedObject.material.emissiveIntensity === 0.5 ? 0.8 : 0.5;
+                    flashCount++;
+                    if (flashCount >= 6) {
+                        clearInterval(flashInterval);
+                        selectedObject.material.emissiveIntensity = 0.5;
+                    }
+                }, 150);
+            } else {
+                selectedObject = null;
+                document.getElementById('selected-info').textContent =
+                    'Click on a component to view details';
+            }
+        }
+
+        window.addEventListener('mousemove', onMouseMove, false);
+        window.addEventListener('click', onClick, false);
+
+        // Controls for toggling sections
+        let autoRotate = false;
+
+        document.getElementById('toggle-u1').addEventListener('click', () => {
+            sections.U1.visible = !sections.U1.visible;
+        });
+
+        document.getElementById('toggle-u2').addEventListener('click', () => {
+            sections.U2.visible = !sections.U2.visible;
+        });
+
+        document.getElementById('toggle-u3').addEventListener('click', () => {
+            sections.U3.visible = !sections.U3.visible;
+        });
+
+        document.getElementById('toggle-rotation').addEventListener('click', () => {
+            autoRotate = !autoRotate;
+        });
+
+        // Window resize handler
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize, false);
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (autoRotate) {
+                cubesatGroup.rotation.y += 0.005;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Hide loading screen and start animation
+        document.getElementById('loading').style.display = 'none';
+        animate();
+
+        // Section labels (positioned in 3D space)
+        const sectionLabels = [
+            { text: 'U1 - Experiment', position: [0, 0, 11.33], class: 'label-u1' },
+            { text: 'U2 - Sensors & Optics', position: [0, 0, 0], class: 'label-u2' },
+            { text: 'U3 - Electronics & DAQ', position: [0, 0, -11.33], class: 'label-u3' }
+        ];
+
+        // Create DOM labels
+        sectionLabels.forEach(label => {
+            const div = document.createElement('div');
+            div.className = `section-label ${label.class}`;
+            div.textContent = label.text;
+            div.style.left = '20px';
+
+            // Position based on 3D coordinates (simplified projection)
+            const vector = new THREE.Vector3(...label.position);
+            vector.project(camera);
+
+            const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+            div.style.top = `${y}px`;
+            document.getElementById('canvas-container').appendChild(div);
+        });
+
+        console.log('3U CubeSat Visualization loaded successfully');
+        console.log(`Total components: ${components.length}`);
+        console.log('Controls: Click components to select, use mouse to orbit');
+    </script>
+</body>
+</html>
+

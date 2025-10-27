@@ -1,0 +1,482 @@
+/**
+ * 3D CubeSat Viewer - Main Stylesheet
+ */
+
+/* ===== CSS Variables ===== */
+:root {
+  --primary-color: #61b3e0;
+  --secondary-color: #9be26b;
+  --danger-color: #e06161;
+  --bg-dark: #0b1020;
+  --bg-panel: rgba(15, 25, 40, 0.95);
+  --border-color: rgba(100, 150, 200, 0.3);
+  --text-color: #ffffff;
+  --text-muted: #a0a0a0;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --transition: all 0.3s ease;
+}
+
+/* ===== Reset & Base ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-dark) 0%, #08101a 100%);
+  color: var(--text-color);
+}
+
+/* ===== Canvas Container ===== */
+#canvas-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+/* ===== Panels ===== */
+.panel {
+  position: absolute;
+  background: var(--bg-panel);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+#info-panel {
+  top: 20px;
+  left: 20px;
+  max-width: 320px;
+  font-size: 14px;
+}
+
+#info-panel h1 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+}
+
+#info-panel h2 {
+  font-size: 14px;
+  margin-top: 15px;
+  margin-bottom: 8px;
+  color: var(--secondary-color);
+}
+
+#info-panel p {
+  margin: 5px 0;
+  line-height: 1.6;
+}
+
+.panel-footer {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+#controls {
+  bottom: 20px;
+  left: 20px;
+  min-width: 200px;
+}
+
+#controls h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: var(--primary-color);
+}
+
+.control-group {
+  margin-bottom: 10px;
+}
+
+#legend {
+  top: 20px;
+  right: 20px;
+  font-size: 12px;
+  min-width: 200px;
+}
+
+#legend h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#toolbar {
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* ===== Buttons ===== */
+.btn, .btn-icon {
+  padding: 10px 16px;
+  background: rgba(97, 179, 224, 0.2);
+  color: var(--text-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn:hover, .btn-icon:hover {
+  background: rgba(97, 179, 224, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(97, 179, 224, 0.3);
+}
+
+.btn:active, .btn-icon:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: rgba(97, 179, 224, 0.4);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background: rgba(97, 179, 224, 0.6);
+}
+
+.btn-danger {
+  background: rgba(224, 97, 97, 0.3);
+  border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+  background: rgba(224, 97, 97, 0.5);
+}
+
+.btn-icon {
+  padding: 8px 12px;
+  font-size: 20px;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* ===== Section Labels ===== */
+.section-label {
+  position: absolute;
+  left: 20px;
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: bold;
+  padding: 8px 12px;
+  background: rgba(20, 30, 50, 0.9);
+  border-radius: 4px;
+  border-left: 3px solid;
+  pointer-events: none;
+  transition: var(--transition);
+  backdrop-filter: blur(5px);
+}
+
+.label-u1 { border-color: #e06161; }
+.label-u2 { border-color: #61b3e0; }
+.label-u3 { border-color: #9be26b; }
+
+/* ===== Loading Screen ===== */
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1000;
+}
+
+#loading p {
+  margin-top: 20px;
+  font-size: 18px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto;
+  border: 4px solid rgba(97, 179, 224, 0.2);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Editor Panel ===== */
+.editor-panel {
+  position: fixed;
+  top: 0;
+  right: -450px;
+  width: 450px;
+  height: 100vh;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-color);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  transition: right 0.3s ease;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.editor-panel.open {
+  right: 0;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+  z-index: 10;
+}
+
+.editor-header h2 {
+  font-size: 20px;
+  color: var(--primary-color);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  font-size: 32px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.close-btn:hover {
+  color: var(--danger-color);
+  transform: rotate(90deg);
+}
+
+.editor-content {
+  padding: 20px;
+}
+
+/* ===== Tabs ===== */
+.editor-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+}
+
+.tab-btn:hover {
+  color: var(--text-color);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* ===== Forms ===== */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-color);
+  font-size: 14px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group input[type="color"] {
+  height: 40px;
+  cursor: pointer;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.form-actions button {
+  flex: 1;
+}
+
+/* ===== Component List ===== */
+.component-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.component-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.component-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--primary-color);
+}
+
+.component-color {
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.component-details {
+  flex: 1;
+}
+
+.component-name {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.component-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.info-message {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .panel {
+    font-size: 12px;
+    padding: 15px;
+  }
+  
+  #info-panel, #legend {
+    max-width: 250px;
+  }
+  
+  .editor-panel {
+    width: 100%;
+    right: -100%;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(97, 179, 224, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(97, 179, 224, 0.5);
+}
+
